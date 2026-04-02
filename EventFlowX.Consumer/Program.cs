@@ -1,17 +1,14 @@
-using EventFlowX.Host.Data;
-using EventFlowX.Host.HostedService;
+using EventFlowX.Consumer;
+using EventFlowX.Consumer.Data;
+using EventFlowX.Consumer.HostedService;
 using EventFlowX.Shared.Services;
-using EventFlowX.Workers.Services;
-using EventFlowX.Workers.Workers;
-using EventFlowX.Workers.Workers.Interface;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using SQLitePCL;
-
 Batteries.Init();
 
-var builder = WebApplication.CreateBuilder(args);
-var connectionString = builder.Configuration.GetConnectionString("OutboxDb");
+var builder = Host.CreateApplicationBuilder(args);
+var connectionString = builder.Configuration.GetConnectionString("InboxDb");
 
 var sqliteBuilder = new SqliteConnectionStringBuilder(connectionString);
 var dbPath = sqliteBuilder.DataSource;
@@ -22,29 +19,25 @@ if (!Directory.Exists(directory))
     Directory.CreateDirectory(directory!);
 }
 
-builder.Services.AddDbContext<OutboxDbContext>(option =>
+builder.Services.AddDbContext<InboxDbContext>(option =>
 {
-    option.UseSqlite(connectionString); 
+    option.UseSqlite(connectionString);
 });
 
-//hosted service
-builder.Services.AddHostedService<PublisherService>();
+
+builder.Services.AddHostedService<Worker>();
 builder.Services.AddHostedService<MigrationService>();
 
-//worker service
-builder.Services.AddScoped<IPublisherWorker, PublisherWorker>();
 
 var instanceId = Environment.GetEnvironmentVariable("INSTANCE_ID")
                  ?? $"{Environment.MachineName}-{Guid.NewGuid().ToString()[..6]}";
 
 builder.Services.AddSingleton<IInstanceIdProvider>(_ => new InstanceIdProvider(instanceId));
 
+builder.Services.AddDbContext<InboxDbContext>(option =>
+{
+    option.UseSqlite(builder.Configuration.GetConnectionString("InboxDb"));
+});
 
-
-var app = builder.Build();
-
-
-app.UseHttpsRedirection();
-
-app.Run();
-
+var host = builder.Build();
+host.Run();

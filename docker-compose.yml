@@ -1,0 +1,8 @@
+services:
+  host:
+    environment:
+      - INSTANCE_ID=host-pod-1
+
+  consumer:
+    environment:
+      - INSTANCE_ID=consumer-pod-1
