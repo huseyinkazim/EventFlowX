@@ -34,10 +34,5 @@ var instanceId = Environment.GetEnvironmentVariable("INSTANCE_ID")
 
 builder.Services.AddSingleton<IInstanceIdProvider>(_ => new InstanceIdProvider(instanceId));
 
-builder.Services.AddDbContext<InboxDbContext>(option =>
-{
-    option.UseSqlite(builder.Configuration.GetConnectionString("InboxDb"));
-});
-
 var host = builder.Build();
 host.Run();

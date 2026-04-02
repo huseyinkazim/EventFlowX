@@ -5,7 +5,7 @@ namespace EventFlowX.Consumer.Data;
 
 public class InboxDbContext : DbContext
 {
-    protected InboxDbContext(DbContextOptions<InboxDbContext> options)
+    public InboxDbContext(DbContextOptions<InboxDbContext> options)
         : base(options)
     {
     }

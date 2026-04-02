@@ -8,8 +8,6 @@ public class MigrationService(ILogger<MigrationService> logger,
 {
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-
-
         using (var scope = serviceScopeFactory.CreateScope())
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<InboxDbContext>();
