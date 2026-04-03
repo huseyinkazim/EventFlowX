@@ -1,6 +1,8 @@
 using EventFlowX.Host.Data;
 using EventFlowX.Host.HostedService;
+using EventFlowX.Shared.Models;
 using EventFlowX.Shared.Services;
+using EventFlowX.Shared.Shared;
 using EventFlowX.Workers.Services;
 using EventFlowX.Workers.Workers;
 using EventFlowX.Workers.Workers.Interface;
@@ -24,7 +26,7 @@ if (!Directory.Exists(directory))
 
 builder.Services.AddDbContext<OutboxDbContext>(option =>
 {
-    option.UseSqlite(connectionString); 
+    option.UseSqlite(connectionString);
 });
 
 //hosted service
@@ -43,7 +45,27 @@ builder.Services.AddSingleton<IInstanceIdProvider>(_ => new InstanceIdProvider(i
 
 var app = builder.Build();
 
+app.MapPost("/publish", async (OutboxDbContext context) =>
+{
+    context.Add(new OutboxEvent
+    {
+        Id = Guid.NewGuid(),
+        EventType = "TestEvent",
+        Payload = "{\"Message\": \"Hello, World!\"}",
+        Status = EventStatus.Pending,
+        CreatedAt = DateTime.UtcNow
+    });
+    await context.SaveChangesAsync();
+    return Results.Ok("Event published successfully.");
+});
 
+
+app.MapGet("", async (OutboxDbContext context,CancellationToken cancellationToken) =>
+{
+
+    var result = await context.OutboxEvents.ToListAsync();
+    return Results.Ok(result);
+});
 app.UseHttpsRedirection();
 
 app.Run();

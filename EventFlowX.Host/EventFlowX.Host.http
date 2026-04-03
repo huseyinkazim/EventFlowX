@@ -1,6 +1,6 @@
 @EventFlowX.Host_HostAddress = http://localhost:5216
 
-GET {{EventFlowX.Host_HostAddress}}/weatherforecast/
+POST {{EventFlowX.Host_HostAddress}}/publish/
 Accept: application/json
 
 ###
