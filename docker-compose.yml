@@ -1,8 +1,23 @@
-services:
-  host:
-    environment:
-      - INSTANCE_ID=host-pod-1
+# services:
+  # host:
+    # environment:
+      # - INSTANCE_ID=host-pod-1
 
-  consumer:
+  # consumer:
+    # environment:
+      # - INSTANCE_ID=consumer-pod-1
+services:
+  rabbitmq:
+    image: rabbitmq:management   # latest management sürümü
+    container_name: EventFlowX.Rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
     environment:
-      - INSTANCE_ID=consumer-pod-1
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+volumes:
+  rabbitmq_data:

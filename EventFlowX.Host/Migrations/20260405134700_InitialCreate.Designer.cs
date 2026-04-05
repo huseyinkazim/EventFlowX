@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EventFlowX.Host.Migrations
 {
     [DbContext(typeof(OutboxDbContext))]
-    [Migration("20260403074718_Initial")]
-    partial class Initial
+    [Migration("20260405134700_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -40,9 +40,6 @@ namespace EventFlowX.Host.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime?>("ProcessedAt")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("ProcessingBy")
                         .HasColumnType("TEXT");
 
@@ -53,11 +50,52 @@ namespace EventFlowX.Host.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("ProcessingBy");
 
                     b.HasIndex("Status");
 
                     b.ToTable("OutboxEvents");
+                });
+
+            modelBuilder.Entity("EventFlowX.Shared.Models.Pod", b =>
+                {
+                    b.Property<string>("InstanceId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("HostName")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("InstanceId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("Pods");
+                });
+
+            modelBuilder.Entity("EventFlowX.Shared.Models.OutboxEvent", b =>
+                {
+                    b.HasOne("EventFlowX.Shared.Models.Pod", "Pod")
+                        .WithMany()
+                        .HasForeignKey("ProcessingBy")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("Pod");
                 });
 #pragma warning restore 612, 618
         }

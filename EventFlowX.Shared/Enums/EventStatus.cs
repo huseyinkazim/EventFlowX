@@ -1,4 +1,4 @@
-﻿namespace EventFlowX.Shared.Shared;
+﻿namespace EventFlowX.Shared.Enums;
 
 public enum EventStatus
 {

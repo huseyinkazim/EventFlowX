@@ -37,9 +37,6 @@ namespace EventFlowX.Host.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime?>("ProcessedAt")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("ProcessingBy")
                         .HasColumnType("TEXT");
 
@@ -50,11 +47,52 @@ namespace EventFlowX.Host.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("ProcessingBy");
 
                     b.HasIndex("Status");
 
                     b.ToTable("OutboxEvents");
+                });
+
+            modelBuilder.Entity("EventFlowX.Shared.Models.Pod", b =>
+                {
+                    b.Property<string>("InstanceId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("HostName")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("InstanceId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("Pods");
+                });
+
+            modelBuilder.Entity("EventFlowX.Shared.Models.OutboxEvent", b =>
+                {
+                    b.HasOne("EventFlowX.Shared.Models.Pod", "Pod")
+                        .WithMany()
+                        .HasForeignKey("ProcessingBy")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("Pod");
                 });
 #pragma warning restore 612, 618
         }

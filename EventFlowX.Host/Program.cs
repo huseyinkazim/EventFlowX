@@ -1,11 +1,13 @@
+
+
 using EventFlowX.Host.Data;
 using EventFlowX.Host.HostedService;
+using EventFlowX.Host.HostedService.Workers;
+using EventFlowX.Host.HostedService.Workers.Interfaces;
+using EventFlowX.Host.Publisher.Interface;
 using EventFlowX.Shared.Models;
 using EventFlowX.Shared.Services;
-using EventFlowX.Shared.Shared;
 using EventFlowX.Workers.Services;
-using EventFlowX.Workers.Workers;
-using EventFlowX.Workers.Workers.Interface;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using SQLitePCL;
@@ -13,13 +15,14 @@ using SQLitePCL;
 Batteries.Init();
 
 var builder = WebApplication.CreateBuilder(args);
+#region SQLLite Conn
 var connectionString = builder.Configuration.GetConnectionString("OutboxDb");
 
 var sqliteBuilder = new SqliteConnectionStringBuilder(connectionString);
 var dbPath = sqliteBuilder.DataSource;
 
 var directory = Path.GetDirectoryName(dbPath);
-if (!Directory.Exists(directory))
+if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
 {
     Directory.CreateDirectory(directory!);
 }
@@ -28,45 +31,53 @@ builder.Services.AddDbContext<OutboxDbContext>(option =>
 {
     option.UseSqlite(connectionString);
 });
+#endregion
 
 //hosted service
 builder.Services.AddHostedService<PublisherService>();
-builder.Services.AddHostedService<MigrationService>();
+builder.Services.AddHostedService<HeartbeatService>();
 
 //worker service
 builder.Services.AddScoped<IPublisherWorker, PublisherWorker>();
+builder.Services.AddScoped<IHeartbeatWorker, HeartbeatWorker>();
 
 var instanceId = Environment.GetEnvironmentVariable("INSTANCE_ID")
                  ?? $"{Environment.MachineName}-{Guid.NewGuid().ToString()[..6]}";
 
 builder.Services.AddSingleton<IInstanceIdProvider>(_ => new InstanceIdProvider(instanceId));
-
+builder.Services.AddSingleton<IEventPublisher>(sp =>
+    {
+        return RabbitMqPublisher.CreateAsync().GetAwaiter().GetResult();
+    });
 
 
 var app = builder.Build();
-
-app.MapPost("/publish", async (OutboxDbContext context) =>
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<OutboxDbContext>();
+    await db.Database.MigrateAsync();
+    await db.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL;");
+}
+app.UseHttpsRedirection();
+app.MapPost("/orders", async (OutboxDbContext context, CancellationToken cancellationToken) =>
 {
     context.Add(new OutboxEvent
     {
-        Id = Guid.NewGuid(),
-        EventType = "TestEvent",
+        EventType = "OrderCreated",
         Payload = "{\"Message\": \"Hello, World!\"}",
-        Status = EventStatus.Pending,
-        CreatedAt = DateTime.UtcNow
     });
-    await context.SaveChangesAsync();
+    await context.SaveChangesAsync(cancellationToken);
     return Results.Ok("Event published successfully.");
 });
 
-
-app.MapGet("", async (OutboxDbContext context,CancellationToken cancellationToken) =>
+app.MapGet("/events", async (OutboxDbContext context) =>
 {
-
-    var result = await context.OutboxEvents.ToListAsync();
+    var result = await context.OutboxEvents
+        .Include(e => e.Pod)
+        .OrderByDescending(e => e.CreatedAt)
+        .ToListAsync();
     return Results.Ok(result);
 });
-app.UseHttpsRedirection();
 
 app.Run();
 

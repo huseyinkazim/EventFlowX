@@ -1,4 +1,4 @@
-﻿namespace EventFlowX.Workers.Workers.Interface;
+﻿namespace EventFlowX.Host.HostedService.Workers.Interfaces;
 
 public interface IWorker
 {
