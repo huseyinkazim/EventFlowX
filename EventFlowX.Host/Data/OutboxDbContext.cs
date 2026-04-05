@@ -18,24 +18,26 @@ public class OutboxDbContext : DbContext
         modelBuilder.Entity<OutboxEvent>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Status)
-                  .HasConversion<string>();
+            entity.Property(e => e.ProcessingBy).HasMaxLength(100); 
+            entity.Property(e => e.Status).HasConversion<string>();
             entity.HasIndex(e => e.Status);
         });
+    
         modelBuilder.Entity<Pod>(entity =>
         {
             entity.HasKey(e => e.InstanceId);
-            entity.Property(e => e.Status)
-                  .HasConversion<string>();
+            entity.Property(e => e.InstanceId).HasMaxLength(100); 
+            entity.Property(e => e.Status).HasConversion<string>();
             entity.HasIndex(e => e.Status);
 
             entity.HasMany<OutboxEvent>()
                   .WithOne(e => e.Pod)
                   .HasForeignKey(e => e.ProcessingBy)
                   .HasPrincipalKey(p => p.InstanceId)
-                  .IsRequired(false)  
+                  .IsRequired(false)
                   .OnDelete(DeleteBehavior.NoAction);
         });
+
         base.OnModelCreating(modelBuilder);
     }
 

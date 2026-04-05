@@ -8,7 +8,7 @@
       # - INSTANCE_ID=consumer-pod-1
 services:
   rabbitmq:
-    image: rabbitmq:management   # latest management sürümü
+    image: rabbitmq:management
     container_name: EventFlowX.Rabbitmq
     ports:
       - "5672:5672"
@@ -19,5 +19,23 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
 
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: EventFlowX.MsSql
+    ports:
+      - "1433:1433"
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Admin1234!"   # min 8 karakter, büyük harf + rakam + özel karakter zorunlu
+      MSSQL_PID: "Developer"            # ücretsiz developer edition
+    volumes:
+      - mssql_data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "Admin1234!", "-Q", "SELECT 1", "-C"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   rabbitmq_data:
+  mssql_data:

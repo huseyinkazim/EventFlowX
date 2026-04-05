@@ -8,30 +8,15 @@ using EventFlowX.Host.Publisher.Interface;
 using EventFlowX.Shared.Models;
 using EventFlowX.Shared.Services;
 using EventFlowX.Workers.Services;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using SQLitePCL;
-
-Batteries.Init();
 
 var builder = WebApplication.CreateBuilder(args);
-#region SQLLite Conn
 var connectionString = builder.Configuration.GetConnectionString("OutboxDb");
-
-var sqliteBuilder = new SqliteConnectionStringBuilder(connectionString);
-var dbPath = sqliteBuilder.DataSource;
-
-var directory = Path.GetDirectoryName(dbPath);
-if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
-{
-    Directory.CreateDirectory(directory!);
-}
 
 builder.Services.AddDbContext<OutboxDbContext>(option =>
 {
-    option.UseSqlite(connectionString);
+    option.UseSqlServer(connectionString);
 });
-#endregion
 
 //hosted service
 builder.Services.AddHostedService<PublisherService>();
@@ -56,7 +41,6 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<OutboxDbContext>();
     await db.Database.MigrateAsync();
-    await db.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL;");
 }
 app.UseHttpsRedirection();
 app.MapPost("/orders", async (OutboxDbContext context, CancellationToken cancellationToken) =>
