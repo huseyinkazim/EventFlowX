@@ -18,6 +18,7 @@ namespace EventFlowX.Host.Migrations
                     InstanceId = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     HostName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Status = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    LastHeartbeat = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
@@ -31,8 +32,11 @@ namespace EventFlowX.Host.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OutboxEvent_EventType = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    EventId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     EventType = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Payload = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    OccurredAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Status = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     ProcessingBy = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     RetryCount = table.Column<int>(type: "int", nullable: false),

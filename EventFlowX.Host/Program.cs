@@ -21,10 +21,11 @@ builder.Services.AddDbContext<OutboxDbContext>(option =>
 //hosted service
 builder.Services.AddHostedService<PublisherService>();
 builder.Services.AddHostedService<HeartbeatService>();
-
+builder.Services.AddHostedService<PodMonitorService>();
 //worker service
 builder.Services.AddScoped<IPublisherWorker, PublisherWorker>();
 builder.Services.AddScoped<IHeartbeatWorker, HeartbeatWorker>();
+builder.Services.AddScoped<IPodMonitorWorker, PodMonitorWorker>();
 
 var instanceId = Environment.GetEnvironmentVariable("INSTANCE_ID")
                  ?? $"{Environment.MachineName}-{Guid.NewGuid().ToString()[..6]}";
@@ -45,11 +46,14 @@ using (var scope = app.Services.CreateScope())
 app.UseHttpsRedirection();
 app.MapPost("/orders", async (OutboxDbContext context, CancellationToken cancellationToken) =>
 {
-    context.Add(new OutboxEvent
+    var orderCreatedEvent = new OutboxEvent
     {
         EventType = "OrderCreated",
-        Payload = "{\"Message\": \"Hello, World!\"}",
-    });
+    };
+
+    orderCreatedEvent.SetData(Guid.NewGuid(), "OrderCreated", "Hello, World!", DateTime.UtcNow);
+    context.Add(orderCreatedEvent);
+
     await context.SaveChangesAsync(cancellationToken);
     return Results.Ok("Event published successfully.");
 });

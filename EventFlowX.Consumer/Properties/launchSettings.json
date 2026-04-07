@@ -3,7 +3,8 @@
     "EventFlowX.Consumer": {
       "commandName": "Project",
       "environmentVariables": {
-        "DOTNET_ENVIRONMENT": "Development"
+        "DOTNET_ENVIRONMENT": "Development",
+        "INSTANCE_ID": "worker-consumer-1"
       },
       "dotnetRunMessages": true
     },

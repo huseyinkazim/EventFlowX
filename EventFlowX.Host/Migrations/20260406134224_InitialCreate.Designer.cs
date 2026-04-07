@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EventFlowX.Host.Migrations
 {
     [DbContext(typeof(OutboxDbContext))]
-    [Migration("20260405233128_InitialCreate")]
+    [Migration("20260406134224_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -41,10 +41,6 @@ namespace EventFlowX.Host.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Payload")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("ProcessingBy")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -65,7 +61,11 @@ namespace EventFlowX.Host.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("OutboxEvents");
+                    b.ToTable("OutboxEvents", t =>
+                        {
+                            t.Property("EventType")
+                                .HasColumnName("OutboxEvent_EventType");
+                        });
                 });
 
             modelBuilder.Entity("EventFlowX.Shared.Models.Pod", b =>
@@ -80,6 +80,9 @@ namespace EventFlowX.Host.Migrations
                     b.Property<string>("HostName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("LastHeartbeat")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -101,6 +104,40 @@ namespace EventFlowX.Host.Migrations
                         .WithMany()
                         .HasForeignKey("ProcessingBy")
                         .OnDelete(DeleteBehavior.NoAction);
+
+                    b.OwnsOne("EventFlowX.Shared.Models.EventMessage", "Data", b1 =>
+                        {
+                            b1.Property<Guid>("OutboxEventId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<Guid>("EventId")
+                                .HasColumnType("uniqueidentifier")
+                                .HasColumnName("EventId");
+
+                            b1.Property<string>("EventType")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(max)")
+                                .HasColumnName("EventType");
+
+                            b1.Property<DateTime>("OccurredAt")
+                                .HasColumnType("datetime2")
+                                .HasColumnName("OccurredAt");
+
+                            b1.Property<string>("Payload")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(max)")
+                                .HasColumnName("Payload");
+
+                            b1.HasKey("OutboxEventId");
+
+                            b1.ToTable("OutboxEvents");
+
+                            b1.WithOwner()
+                                .HasForeignKey("OutboxEventId");
+                        });
+
+                    b.Navigation("Data")
+                        .IsRequired();
 
                     b.Navigation("Pod");
                 });

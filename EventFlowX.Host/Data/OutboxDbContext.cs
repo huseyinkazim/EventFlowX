@@ -21,6 +21,13 @@ public class OutboxDbContext : DbContext
             entity.Property(e => e.ProcessingBy).HasMaxLength(100); 
             entity.Property(e => e.Status).HasConversion<string>();
             entity.HasIndex(e => e.Status);
+            entity.OwnsOne(e => e.Data, data =>
+            {
+                data.Property(d => d.EventId).HasColumnName("EventId");
+                data.Property(d => d.EventType).HasColumnName("EventType");
+                data.Property(d => d.Payload).HasColumnName("Payload");
+                data.Property(d => d.OccurredAt).HasColumnName("OccurredAt");
+            });            
         });
     
         modelBuilder.Entity<Pod>(entity =>

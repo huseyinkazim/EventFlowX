@@ -6,6 +6,7 @@ using EventFlowX.Shared.Enums;
 using EventFlowX.Shared.Models;
 using EventFlowX.Shared.Services;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace EventFlowX.Host.HostedService.Workers;
 
@@ -58,7 +59,7 @@ public class PublisherWorker(
                 {
                     logger.LogInformation("Processing event {EventId}", evt.Id);
 
-                    await publisher.PublishAsync(evt.EventType, evt.Payload, stoppingToken);
+                    await publisher.PublishAsync(evt.EventType, JsonSerializer.Serialize(evt.Data), stoppingToken);
 
                     evt.SetStatus(EventStatus.Processed);
                 }
@@ -96,13 +97,16 @@ public class PublisherWorker(
                 {
                     existingPod.Status = PodStatus.Running;
                     existingPod.HostName = Environment.MachineName;
-                    await db.OutboxEvents.Where(e => e.ProcessingBy == existingPod.InstanceId && (e.Status == EventStatus.Processing || e.Status == EventStatus.Pending))
-                        .ToListAsync(cancellationToken)
-                        .ContinueWith(t => t.Result.ForEach(e =>
-                        {
-                            e.SetStatus(EventStatus.Pending);
-                            e.SetProcessingBy(null);
-                        }));
+                    var result = await db.OutboxEvents
+                        .Where(e => e.ProcessingBy == existingPod.InstanceId &&
+                        (e.Status == EventStatus.Processing || e.Status == EventStatus.Pending))
+                        .ToListAsync(cancellationToken);
+
+                    foreach (var e in result)
+                    {
+                        e.SetStatus(EventStatus.Pending);
+                        e.SetProcessingBy(null);
+                    }
                 }
                 else
                 {
@@ -116,9 +120,9 @@ public class PublisherWorker(
                 await db.SaveChangesAsync(cancellationToken);
             }
         }
-        catch (Exception ex) 
+        catch (Exception ex)
         {
-            logger.LogError(ex.Message);
+            logger.LogError(ex,"Pod Activation Error");
         }
     }
 
@@ -127,7 +131,9 @@ public class PublisherWorker(
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<OutboxDbContext>();
         var deadPod = await db.Pods.FirstAsync(i => i.InstanceId == instanceIdProvider.InstanceId && i.Status == PodStatus.Running);
+
         deadPod.Status = PodStatus.Stopping;
+
         await db.SaveChangesAsync();
 
         logger.LogInformation("PublisherWorker has stopped.{time}", DateTimeOffset.Now);

@@ -22,7 +22,7 @@ public class HeartbeatWorker(
                 await db.Pods
                     .Where(p => p.InstanceId == instanceIdProvider.InstanceId)
                     .ExecuteUpdateAsync(s => s
-                        .SetProperty(e => e.Status, Shared.Enums.PodStatus.Dead), stoppingToken);
+                    .SetProperty(e => e.LastHeartbeat, DateTime.UtcNow), stoppingToken);
 
                 logger.LogDebug("Heartbeat sent. {InstanceId}", instanceIdProvider.InstanceId);
             }
