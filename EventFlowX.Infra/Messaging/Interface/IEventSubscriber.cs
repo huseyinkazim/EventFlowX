@@ -1,4 +1,4 @@
-﻿namespace EventFlowX.Consumer.Consumer.Interface;
+﻿namespace EventFlowX.Infra.Messaging.Interface;
 
 public interface IEventSubscriber
 {

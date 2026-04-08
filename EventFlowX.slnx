@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="EventFlowX.Consumer/EventFlowX.Consumer.csproj" Id="70a77947-f360-4da8-92a6-7f250afd17f5" />
   <Project Path="EventFlowX.Host/EventFlowX.Host.csproj" />
+  <Project Path="EventFlowX.Infra/EventFlowX.Infra.csproj" Id="db508d5e-b91d-4744-8d3b-c86ce1a5c01b" />
   <Project Path="EventFlowX.Shared/EventFlowX.Shared.csproj" Id="79309b55-cda1-4811-996a-06a75b9ca51d" />
 </Solution>

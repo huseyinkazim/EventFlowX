@@ -1,7 +1,7 @@
 ﻿using EventFlowX.Host.Data;
 using EventFlowX.Host.Helper;
 using EventFlowX.Host.HostedService.Workers.Interfaces;
-using EventFlowX.Host.Publisher.Interface;
+using EventFlowX.Infra.Messaging.Interface;
 using EventFlowX.Shared.Enums;
 using EventFlowX.Shared.Models;
 using EventFlowX.Shared.Services;
@@ -122,7 +122,7 @@ public class PublisherWorker(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex,"Pod Activation Error");
+            logger.LogError(ex, "Pod Activation Error");
         }
     }
 

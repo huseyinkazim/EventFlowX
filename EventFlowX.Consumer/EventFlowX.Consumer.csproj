@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\EventFlowX.Infra\EventFlowX.Infra.csproj" />
     <ProjectReference Include="..\EventFlowX.Shared\EventFlowX.Shared.csproj" />
   </ItemGroup>
 </Project>

@@ -1,5 +1,5 @@
-using EventFlowX.Consumer.Consumer.Interface;
 using EventFlowX.Consumer.Data;
+using EventFlowX.Infra.Messaging.Interface;
 using EventFlowX.Shared.Enums;
 using EventFlowX.Shared.Models;
 using EventFlowX.Shared.Services;
@@ -15,59 +15,84 @@ public class Worker(ILogger<Worker> logger,
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await subscriber.SubscribeAsync("OrderCreated", async message =>
-        {
-            using var scope = scopeFactory.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<InboxDbContext>();
+        _ = subscriber.SubscribeAsync("OrderCreated", HandleMain, stoppingToken);
 
-            var eventMessage = JsonSerializer.Deserialize<EventMessage>(message);
-            if (eventMessage is null)
+        await Task.Delay(Timeout.Infinite, stoppingToken);
+    }
+
+    private async Task HandleMain(string message)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<InboxDbContext>();
+
+        var eventMessage = JsonSerializer.Deserialize<EventMessage>(message);
+        if (eventMessage is null)
+        {
+            logger.LogError("Failed to deserialize message: {Message}", message);
+            return;
+        }
+
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        try
+        {
+            var exists = await db.InboxEvents.AnyAsync(i => i.Id == eventMessage.EventId);
+            if (exists)
             {
-                logger.LogError("Failed to deserialize message: {Message}", message);
+                logger.LogInformation("Duplicate event {EventId}, skipping.", eventMessage.EventId);
                 return;
             }
 
-            await using var transaction = await db.Database.BeginTransactionAsync();
+            var inboxEvent = new InboxEvent
+            {
+                Id = eventMessage.EventId,
+                EventType = eventMessage.EventType,
+                Payload = eventMessage.Payload,
+                ProcessingBy = instanceIdProvider.InstanceId,
+                Status = EventStatus.Processing,
+            };
+            db.InboxEvents.Add(inboxEvent);
+            await db.SaveChangesAsync();
+            #region BussinessLogic
+            // Business logic buraya
+            #endregion
+            logger.LogInformation("Processing event {EventId}", eventMessage.EventId);
+
+            inboxEvent.Status = EventStatus.Processed;
+
+            await db.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("UNIQUE") == true)
+        {
+            await transaction.RollbackAsync();
+            logger.LogInformation("Duplicate event {EventId} caught by constraint.", eventMessage.EventId);
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            logger.LogError(ex, "Failed to process event {EventId}", eventMessage.EventId);
             try
             {
-                var exists = await db.InboxEvents.AnyAsync(i => i.Id == eventMessage.EventId);
-                if (exists)
-                {
-                    logger.LogInformation("Duplicate event {EventId}, skipping.", eventMessage.EventId);
-                    return;
-                }
-
-                var inboxEvent = new InboxEvent
+                var failedEvent = new InboxEvent
                 {
                     Id = eventMessage.EventId,
                     EventType = eventMessage.EventType,
                     Payload = eventMessage.Payload,
-                    ProcessingBy = instanceIdProvider.InstanceId,
-                    Status = EventStatus.Processing,
+                    Status = EventStatus.Failed,
+                    ErrorMessage = ex.Message
                 };
-                db.InboxEvents.Add(inboxEvent);
+                db.InboxEvents.Add(failedEvent);
                 await db.SaveChangesAsync();
-                #region BussinessLogic
-                // Business logic buraya
-                #endregion
-                logger.LogInformation("Processing event {EventId}", eventMessage.EventId);
+            }
+            catch { }
 
-                inboxEvent.Status = EventStatus.Processed;
+            throw;
+        }
+    }
 
-                await db.SaveChangesAsync();
-                await transaction.CommitAsync();
-            }
-            catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("UNIQUE") == true)
-            {
-                await transaction.RollbackAsync();
-                logger.LogInformation("Duplicate event {EventId} caught by constraint.", eventMessage.EventId);
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                logger.LogError(ex, "Failed to process event {EventId}", eventMessage.EventId);
-                throw;
-            }
-        }, stoppingToken);
+    private async Task HandleDead(string message)
+    {
+        //Do bussiness logic for dead letter
+        logger.LogWarning("Dead letter received: {Message}", message);
     }
 }

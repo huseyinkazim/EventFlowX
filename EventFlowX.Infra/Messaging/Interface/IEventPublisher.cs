@@ -1,4 +1,4 @@
-﻿namespace EventFlowX.Host.Publisher.Interface;
+﻿namespace EventFlowX.Infra.Messaging.Interface;
 
 public interface IEventPublisher
 {
