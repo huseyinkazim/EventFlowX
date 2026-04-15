@@ -60,6 +60,7 @@ POST /orders
 4. DB becomes **source of truth for event tracking**
 
 ---
+<img width="1521" height="867" alt="image" src="https://github.com/user-attachments/assets/8c048d7b-bcf0-442f-937c-80169bfbcdde" />
 
 ## 📡 API Endpoints
 
@@ -109,10 +110,6 @@ Background consumers processing events asynchronously.
 ✔ Event Driven Architecture
 
 Services communicate via events instead of direct calls.
-
-<img width="1521" height="867" alt="image" src="https://github.com/user-attachments/assets/8c048d7b-bcf0-442f-937c-80169bfbcdde" />
-
-
 
 📊 Database Tables
 OutboxEvents
