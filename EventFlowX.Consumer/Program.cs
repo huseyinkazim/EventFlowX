@@ -7,6 +7,15 @@ using Microsoft.EntityFrameworkCore;
 
 
 var builder = Host.CreateApplicationBuilder(args);
+
+var env = builder.Environment.EnvironmentName;
+
+builder.Configuration
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: false)
+    .AddJsonFile($"appsettings.{env}.json", optional: true)
+    .AddEnvironmentVariables();
+
 var connectionString = builder.Configuration.GetConnectionString("InboxDb");
 
 
@@ -23,7 +32,7 @@ var instanceId = Environment.GetEnvironmentVariable("INSTANCE_ID")
 
 builder.Services.AddSingleton<IInstanceIdProvider>(_ => new InstanceIdProvider(instanceId));
 builder.Services.AddSingleton<IRabbitMqConnection>(_ =>
-    new RabbitMqConnection("amqp://admin:admin@localhost:5672/"));
+    new RabbitMqConnection(builder.Configuration.GetConnectionString("RabbitMq")!));
 
 builder.Services.AddSingleton<IEventSubscriber, RabbitMqSubscriber>();
 

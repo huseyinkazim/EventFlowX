@@ -1,15 +1,7 @@
-# services:
-  # host:
-    # environment:
-      # - INSTANCE_ID=host-pod-1
-
-  # consumer:
-    # environment:
-      # - INSTANCE_ID=consumer-pod-1
 services:
   rabbitmq:
     image: rabbitmq:management
-    container_name: EventFlowX.Rabbitmq
+    container_name: eventflowx_rabbitmq
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -21,20 +13,46 @@ services:
 
   mssql:
     image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: EventFlowX.MsSql
+    container_name: eventflowx_mssql
     ports:
       - "1433:1433"
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "Admin1234!"   # min 8 karakter, büyük harf + rakam + özel karakter zorunlu
-      MSSQL_PID: "Developer"            # ücretsiz developer edition
+      MSSQL_SA_PASSWORD: "Admin1234!"
+      MSSQL_PID: "Developer"
     volumes:
       - mssql_data:/var/opt/mssql
     healthcheck:
-      test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "Admin1234!", "-Q", "SELECT 1", "-C"]
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'Admin1234!' -Q 'SELECT 1'"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  consumer:
+    build:
+      context: .
+      dockerfile: EventFlowX.Consumer/Dockerfile
+    container_name: eventflowx_consumer
+    depends_on:
+      - rabbitmq
+      - mssql
+    environment:
+      - DOTNET_ENVIRONMENT=Docker
+      - INSTANCE_ID=worker-consumer
+
+  host:
+    build:
+      context: .
+      dockerfile: EventFlowX.Host/Dockerfile
+    container_name: eventflowx_host
+    ports:
+      - "8080:8080"
+    depends_on:
+      - rabbitmq
+      - mssql
+    environment:
+      - DOTNET_ENVIRONMENT=Docker
+      - INSTANCE_ID=worker-host
 
 volumes:
   rabbitmq_data:

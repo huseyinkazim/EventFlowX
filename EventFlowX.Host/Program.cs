@@ -31,7 +31,7 @@ var instanceId = Environment.GetEnvironmentVariable("INSTANCE_ID")
 
 builder.Services.AddSingleton<IInstanceIdProvider>(_ => new InstanceIdProvider(instanceId));
 builder.Services.AddSingleton<IRabbitMqConnection>(_ =>
-    new RabbitMqConnection("amqp://admin:admin@localhost:5672/"));
+    new RabbitMqConnection(builder.Configuration.GetConnectionString("RabbitMq")!));
 
 builder.Services.AddSingleton<IEventPublisher, RabbitMqPublisher>();
 
